@@ -54,6 +54,7 @@ def init(app, mongo, prefix):
         ele = {}
         if "name" not in request.form: return "no name"
         else: ele["name"] = request.form["name"]
+        if hwlab.find_one({"name": ele["name"]}) is not None: return "duplicate name"
         if "quantity" not in request.form: return "no quantity"
         else: ele["quantity"] = request.form["quantity"]
         if not re.match(nonminus, ele["quantity"]): return "quantity invalid"
@@ -76,6 +77,36 @@ def init(app, mongo, prefix):
         ele["tag"] = tags
         print(ele)
         hwlab.insert(ele) 
+        return "OK"
+    @app.route(prefix + "/modify", methods=['POST'])
+    def hwlab_modify():
+        if "logined" not in session: return redirect(prefix + "/login.html")
+        hwlab = mongo.db.hwlab
+        ele = {}
+        if "name" not in request.form: return "no name"
+        else: ele["name"] = request.form["name"]
+        if "quantity" not in request.form: return "no quantity"
+        else: ele["quantity"] = request.form["quantity"]
+        if not re.match(nonminus, ele["quantity"]): return "quantity invalid"
+        ele["quantity"] = int(ele["quantity"])
+        if "position" not in request.form: return "no position"
+        else: ele["position"] = request.form["position"]
+        if "description" not in request.form: return "no description"
+        else: ele["description"] = request.form["description"]
+        if "image" not in request.form: return "no image"
+        else: ele["image"] = request.form["image"]
+        if "lastmodified" not in request.form: return "no lastmodified"
+        else: ele["lastmodified"] = request.form["lastmodified"]
+        if not re.match(nonminus, ele["lastmodified"]): return "lastmodified invalid"
+        ele["lastmodified"] = int(ele["lastmodified"])  # 可能溢出，需要在64位机器上运行
+        i = 0
+        tags = []
+        while ("tag%d" % i) in request.form:
+            tags.append(request.form["tag%d" % i])
+            i += 1
+        ele["tag"] = tags
+        print(ele)
+        hwlab.update({"name": ele["name"]},{"$set": ele})
         return "OK"
 
 if __name__ == "__main__":

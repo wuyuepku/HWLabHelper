@@ -65,31 +65,33 @@
                 <form>
                     <div class="form-inline">
                         <label for="name" class="col-sm-4 col-form-label">元件名称</label>
-                        <input type="text" class="form-control col-sm-8" id="name" placeholder="name" readonly value="C202">
+                        <input type="text" class="form-control col-sm-8" id="name" placeholder="name" readonly>
                     </div>
                     <div class="form-inline" style="margin-top: 10px;">
                         <label for="quantity" class="col-sm-4 col-form-label">数量</label>
-                        <button type="button" class="btn btn-success col-sm-2">-</button>
-                        <input type="number" class="form-control col-sm-4" id="quantity" placeholder="quantity">
-                        <button type="button" class="btn btn-success col-sm-2">+</button>
+                        <button type="button" class="btn btn-warning col-sm-1 cqua" onclick="change_qua(-10)">-10</button>
+                        <button type="button" class="btn btn-success col-sm-1 cqua" onclick="change_qua(-1)">-1</button>
+                        <input type="number" class="form-control col-sm-4 cqua" id="quantity" placeholder="quantity" onblur="general_modify()">
+                        <button type="button" class="btn btn-success col-sm-1 cqua" onclick="change_qua(1)">+1</button>
+                        <button type="button" class="btn btn-warning col-sm-1 cqua" onclick="change_qua(+10)">+10</button>
                     </div>
                     <div class="form-inline" style="margin-top: 10px;">
                         <label for="position" class="col-sm-4 col-form-label">放置地点</label>
-                        <select class="form-control col-sm-8" id="position"></select>
+                        <select class="form-control col-sm-8 cqua" id="position" onchange="general_modify()"></select>
                     </div>
                     <div class="form-inline" style="margin-top: 10px;">
                         <label for="tag" class="col-sm-4 col-form-label">添加标签</label>
-                        <select class="form-control col-sm-8" id="tag" onchange="tag_change()"></select>
+                        <select class="form-control col-sm-8 cqua" id="tag" onchange="tag_change()"></select>
                     </div>
                     <div class="form-inline" style="margin-top: 10px;" id="tags">
-                        <input type="text" class="form-control col-sm-4" id="diy_tag" placeholder="自定义标签" style="margin-left: 5px;" onblur="add_diy_tag()"/>
+                        <input type="text" class="form-control col-sm-4 cqua" id="diy_tag" placeholder="自定义标签" style="margin-left: 5px;" onblur="add_diy_tag()"/>
                     </div>
                     <div class="form-group">
-                        <img src="img/default.jpg" style="width: 100%; border: 1px solid black; margin-top: 10px;" id="image"/>
+                        <img src="img/default.jpg" style="width: 100%; border: 1px solid black; margin-top: 10px;" id="image" class="cqua"/>
                     </div>
                     <div class="form-group">
                         <label for="description">详细描述信息（备注）</label>
-                        <textarea class="form-control" id="description" rows="3"></textarea>
+                        <textarea class="form-control cqua" id="description" rows="3" onblur="general_modify()"></textarea>
                     </div>
                 </form>
             </div>
@@ -105,14 +107,14 @@
     <script type="text/html" id="tag_template">
         <div class="alert {{:class}}" role="alert" style="display: inline-block; padding: 6px; margin: 5px;" id="{{:id}}">
             {{:name}}
-            <button type="button" class="close" style="line-height: 0.8;" onclick="del_tag('{{:id}}')">
+            <button type="button" class="close cqua" style="line-height: 0.8;" onclick="del_tag('{{:id}}')">
                 <span aria-hidden="true">&times;</span>
             </button>
         </div>
     </script>
 
     <script type="text/html" id="ele_template">
-        <a class="list-group-item list-group-item-action" id="{{:id}}" onclick="select_ele('{{:id}}')">{{:name}}</a>
+        <a class="list-group-item list-group-item-action cqua" id="{{:id}}" onclick="select_ele('{{:id}}')">{{:name}}</a>
     </script>
 
     <script>
@@ -170,6 +172,7 @@
         if (show_status) {
             midbar_return();
         } else {
+            show_active();
             detail_show();
         }
     }
@@ -178,6 +181,7 @@
         if (lock) $("#btn_query").attr("disabled", "disabled"); else $("#btn_query").removeAttr("disabled");
         if (lock) $("#btn_refresh").attr("disabled", "disabled"); else $("#btn_refresh").removeAttr("disabled");
         if (lock) $("#btn_ret").attr("disabled", "disabled"); else $("#btn_ret").removeAttr("disabled");
+        if (lock) $(".cqua").attr("disabled", "disabled"); else $(".cqua").removeAttr("disabled");
     }
 
     $(function() {
@@ -193,6 +197,7 @@
     })
 
     function show_queried_data() {
+        console.log(active_ele);
         console.log(queried_data);
         $("#elelist").children().remove();
         ele_map = {};
@@ -200,16 +205,35 @@
         for (let i=0; i<queried_data.length; ++i) {
             ordered_data.push(queried_data[i]);
         }
+        let active_id = null;
+        let active_name = "";
+        if (active_ele) active_name = active_ele.name;
+        console.log(active_ele);
+        console.log(active_name);
         // TODO 排序
         for (let i=0; i < ordered_data.length; ++i) {
             let id = allocID();
             ordered_data[i]["id"] = id;
+            if (active_name == ordered_data[i].name) active_id = id;
             ele_map[id] = ordered_data[i];
             $("#elelist").append($.templates("#ele_template").render({"name": ordered_data[i].name, "id": id}));
         }
-        if (ordered_data.length != 0) {
+        console.log(active_id);
+        if (active_id) {
+            select_ele(active_id);
+        } else if (ordered_data.length != 0) {
             select_ele(ordered_data[0].id);
         }
+    }
+
+    function show_active() {
+        if (active_ele == null) return;
+        let active_id = null;
+        for (let i=0; i < ordered_data.length; ++i) {
+            if (active_ele.name == ordered_data[i].name) active_id = ordered_data[i]["id"];
+        }
+        console.log(active_id);
+        if (active_id) select_ele(active_ele.id);
     }
 
     function refresh_all() {
@@ -229,31 +253,36 @@
     }
 
     function tag_change() {
-        if (status == "adding") {  // 每一次都添加一个tag
+        if (status == "adding" || status == "modifying") {  // 每一次都添加一个tag
             let tag = $("#tag option:selected").text();
             if (tag != "点击添加") {  // 添加一个tag到tags里面
                 adding_add_tag(tag);
             }
             console.log(tag);
+            $("#tag").find("option").removeAttr("selected");
+            $("#tag").find("option:contains('点击添加')").attr("selected",true);
+            if (status == "modifying") general_modify();
         } else {
             alert("系统错误 tag_change");
         }
     }
 
     function del_tag(id) {
-        if (status == "adding") {
+        if (status == "adding" || status == "modifying") {
             $("#" + id).remove();
+            if (status == "modifying") general_modify();
         } else {
             alert("系统错误 del_tag");
         }
     }
 
     function add_diy_tag() {
-        if (status == "adding") {
+        if (status == "adding" || status == "modifying") {
             let tagname = htmlEscape($("#diy_tag").val());
             $("#diy_tag").val("");
             if (tagname.length != 0) {
                 adding_add_tag(tagname);
+                if (status == "modifying") general_modify();
             }
         } else {
             alert("系统错误 add_diy_tag");
@@ -302,7 +331,12 @@
                         alert("添加成功");
                         ele["tag"] = tags;  // 设置数组
                         console.log(ele);
-                    } else alert("添加失败");
+                        active_ele = ele;
+                        queried_data.push(ele);
+                        midbar_return();
+                        status = "modifying";
+                        show_queried_data();
+                    } else alert("添加失败：" + msg);
                     global_lock(false);
                 }
             })
@@ -314,7 +348,13 @@
             $("#btn_add").addClass("btn-danger");
             $("#btn_add").html("确认添加");
             $("#btn_ret").html("取消添加");
+            $("#quantity").val("1");
+            $("#position").find("option").removeAttr("selected");
+            $("#position").find("option:contains('未知地点')").attr("selected",true);
+            $("#tag").find("option").removeAttr("selected");
+            $("#tag").find("option:contains('点击添加')").attr("selected",true);
             $("#tags").children("div").remove();
+            $("#description").val("");
             detail_show();
             status = "adding";
         }
@@ -343,9 +383,10 @@
             $("#position").find("option").removeAttr("selected");
             $("#position").find("option:contains('" + ele.position + "')").attr("selected",true);
             $("#tags").children("div").remove();
-            for (let i=0; i<ele.tag.length; ++i) {
+            for (let i=ele.tag.length-1; i>=0; --i) {
                 $("#tags").prepend($.templates("#tag_template").render({"name": ele.tag[i], "class": get_alert_class(ele.tag[i]), "id": allocID()}));
             }
+            $("#description").val(ele.description);
             $("#btn_add").removeClass("btn-danger");
             $("#btn_add").addClass("btn-success");
             $("#btn_add").html("添加元件");
@@ -365,6 +406,84 @@
                 case "\"":return "&quot;"; 
             } 
         });
+    }
+
+    function change_qua(delta) {
+        if (status == "adding") {
+            let quantity = $("#quantity").val();
+            if (! /^[0-9]+$/.test(quantity)) {
+                alert("元件数量必需为非负整数");
+                $("#quantity").val(1);
+                return;
+            }
+            quantity = parseInt(quantity) + delta;
+            $("#quantity").val(quantity);
+        } else if (status == "modifying" && active_ele != null) {
+            let quantity = $("#quantity").val();
+            if (! /^[0-9]+$/.test(quantity)) {
+                alert("元件数量必需为非负整数");
+                $("#quantity").val(active_ele.quantity);
+                return;
+            }
+            quantity = parseInt(quantity) + delta;
+            if (quantity < 0) quantity = 0;
+            $("#quantity").val(quantity);
+            general_modify();
+        }
+    }
+
+    function general_modify() {
+        if (status == "modifying" && active_ele != null) {
+            let name = $("#name").val();
+            let quantity = $("#quantity").val();
+            if (! /^[0-9]+$/.test(quantity)) {
+                alert("元件数量必需为非负整数");
+                $("#quantity").val(active_ele.quantity);
+                return;
+            }
+            quantity = parseInt(quantity);
+            let position = $("#position option:selected").text();
+            let description = $("#description").val();
+            let image = $("#image").attr("src");
+            let d = new Date();
+            let lastmodified = d.getTime();
+            let tags = [];
+            let children = $("#tags").children("div");
+            for (let i=0; i<children.length; ++i) {
+                tags.push(children[i].innerText.slice(0,-2));
+            }
+            console.log(tags);
+            let ele = {
+                "name": name,
+                "quantity": quantity,
+                "position": position,
+                "description": description,
+                "image": image,
+                "lastmodified": lastmodified
+            }
+            let data = JSON.parse(JSON.stringify(ele));  // copy the object
+            for (let i=0; i<tags.length; ++i) {
+                data["tag" + i] = tags[i];
+            }
+            global_lock(true);
+            $.ajax({
+                type: 'POST',
+                url: "modify",
+                data: data,
+                success: function(msg) {
+                    console.log(msg);
+                    if (msg == "OK") {
+                        ele["tag"] = tags;  // 设置数组
+                        console.log(ele);
+                        for (let key in ele) {
+                            active_ele[key] = ele[key];
+                        }
+                        show_queried_data();
+                    } else alert("添加失败");
+                    global_lock(false);
+                }
+            })
+        }
     }
 
     </script>
