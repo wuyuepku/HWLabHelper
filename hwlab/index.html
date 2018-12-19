@@ -176,7 +176,8 @@
         {"name": "红色手推车"}
     ];
 
-    var sys_tags = [
+    var sys_tags = [];
+    var sys_tags_init = [
         {"name": "常用元件", "class": "alert-success"},
         {"name": "需要增添", "class": "alert-warning"},
         {"name": "弃用", "class": "alert-danger"},
@@ -248,6 +249,29 @@
         // toggle_show();
     })
 
+    function update_tag_options() {
+        sys_tags = [];
+        tmp = {};
+        for (let i=0; i<sys_tags_init.length; ++i) {
+            sys_tags.push(sys_tags_init[i]);
+            tmp[sys_tags_init[i].name] = true;
+        }
+        for (let i=0; i<ordered_data.length; ++i) {
+            for (let j=0; j<ordered_data[i].tag.length; ++j) {
+                let tagname = ordered_data[i].tag[j];
+                if (! (tagname in tmp)) {
+                    sys_tags.push({"name": tagname, "class": "alert-primary"},);
+                    tmp[tagname] = true;
+                }
+            }
+        }
+        $("#tag").children().remove();
+        $("#tag").append("<option>点击添加</option>");
+        for (let i=0; i<sys_tags.length; ++i) {
+            $("#tag").append("<option>" + sys_tags[i].name + "</option>");
+        }
+    }
+
     function show_queried_data(data) {
         console.log(active_ele);
         console.log(data);
@@ -257,12 +281,16 @@
         for (let i=0; i<data.length; ++i) {
             ordered_data.push(data[i]);
         }
+        // TODO 排序
+        ordered_data.sort(function (a, b) {
+            return b.lastmodified - a.lastmodified;
+        })
+        update_tag_options();
         let active_id = null;
         let active_name = "";
         if (active_ele) active_name = active_ele.name;
         console.log(active_ele);
         console.log(active_name);
-        // TODO 排序
         for (let i=0; i < ordered_data.length; ++i) {
             let id = allocID();
             ordered_data[i]["id"] = id;
@@ -473,6 +501,7 @@
                 return;
             }
             quantity = parseInt(quantity) + delta;
+            if (quantity < 0) quantity = 0;
             $("#quantity").val(quantity);
         } else if (status == "modifying" && active_ele != null) {
             let quantity = $("#quantity").val();
@@ -557,6 +586,7 @@
     var filter = null;
     var filterstr = "";
     function filter_set(func) {
+        if (status == "adding") { alert("请先退出添加模式"); return; }
         try {
             filterstr = func;
             eval(func);
