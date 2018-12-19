@@ -31,14 +31,31 @@
         top: 22%;
         display: none;
     }
+    .filterbar {
+        position: absolute;
+        height: 5%;
+        top: 2%;
+        right: 2%;
+        background-color: red;
+        display: none;
+    }
+    .filterarea {
+        position: absolute;
+        opacity: 0.3;
+        z-index: -1;
+        background-color: yellow;
+        color: red;
+        line-height: 1;
+        text-align: center;
+    }
     </style>
 </head>
 <body>
 
-    <img src="img/pos1.jpg" style="position: absolute; width: 50%; height: 50%; left: 0%; top: 0%; z-index: -1;"/>
-    <img src="img/pos2.jpg" style="position: absolute; width: 50%; height: 50%; left: 0%; top: 50%; z-index: -1;"/>
-    <img src="img/pos3.jpg" style="position: absolute; width: 50%; height: 50%; left: 50%; top: 0%; z-index: -1;"/>
-    <img src="img/pos4.jpg" style="position: absolute; width: 50%; height: 50%; left: 50%; top: 50%; z-index: -1;"/>
+    <img src="img/pos1.jpg" style="position: absolute; width: 50%; height: 50%; left: 0%; top: 0%; z-index: -2;"/>
+    <img src="img/pos2.jpg" style="position: absolute; width: 50%; height: 50%; left: 0%; top: 50%; z-index: -2;"/>
+    <img src="img/pos3.jpg" style="position: absolute; width: 50%; height: 50%; left: 50%; top: 0%; z-index: -2;"/>
+    <img src="img/pos4.jpg" style="position: absolute; width: 50%; height: 50%; left: 50%; top: 50%; z-index: -2;"/>
 
     <div class="midbar" style=" background-color: whitesmoke; opacity: 0.7;"></div>
     <div class="midbar">
@@ -48,6 +65,21 @@
         <button class="btn btn-info midbtn" onclick="refresh_all()" id="btn_refresh">刷新</button>
         <button class="btn btn-secondary midbtn" onclick="toggle_show()" id="btn_ret">切换显示</button>
     </div>
+
+    <div class="filterarea" style="width: 10%; height: 20%; left: 17%; top: 2%;"
+        onclick="filter_set('filter=function(e){return filter_position(e, \'蓝盒子\')}')"></div>
+    <div class="filterarea" style="width: 10%; height: 20%; left: 30%; top: 2%;"
+        onclick="filter_set('filter=function(e){return filter_position(e, \'红盒子\')}')"></div>
+    <div class="filterarea" style="width: 30%; height: 20%; left: 10%; top: 25%;"
+        onclick="filter_set('filter=function(e){return filter_position(e, \'铁柜1\')}')"></div>
+    <div class="filterarea" style="width: 30%; height: 20%; right: 10%; top: 10%;"
+        onclick="filter_set('filter=function(e){return filter_position(e, \'蓝色手推车\')}')"></div>
+    <div class="filterarea" style="width: 30%; height: 20%; right: 10%; bottom: 10%;"
+        onclick="filter_set('filter=function(e){return filter_position(e, \'红色手推车\')}')"></div>
+    <div class="filterarea" style="width: 30%; height: 20%; left: 10%; bottom: 15%;"
+        onclick="filter_set('filter=function(e){return filter_position(e, \'铁柜2\')}')"></div>
+
+    <button class="btn btn-danger filterbar" id="btnclear" onclick="clear_filter()">取消搜索</button>
 
     <div class="detailbar" style=" background-color: whitesmoke; opacity: 0.7;"></div>
     <div class="detailbar">
@@ -62,7 +94,7 @@
                 <div style="width: 100%; height: 100%; padding-top: 10px;text-align: center; font-size: 150%; font-weight: 900;" id="title">元件属性</div>
             </div>
             <div style="height: 90%; background-color: snow; width: 100%; overflow-y :auto; padding: 15px;">
-                <form>
+                <form id="elementsetting">
                     <div class="form-inline">
                         <label for="name" class="col-sm-4 col-form-label">元件名称</label>
                         <input type="text" class="form-control col-sm-8" id="name" placeholder="name" readonly>
@@ -93,6 +125,21 @@
                         <label for="description">详细描述信息（备注）</label>
                         <textarea class="form-control cqua" id="description" rows="3" onblur="general_modify()"></textarea>
                     </div>
+                </form>
+                <form id="querypanel">
+                    <div class="form-group">
+                        <label for="filterstr">查询样例</label>
+                        <button type="button" class="btn btn-primary" onclick="query_example(0)">查询标签</button>
+                        <button type="button" class="btn btn-warning" onclick="query_example(1)">关键字查询</button>
+                        <button type="button" class="btn btn-dark" onclick="query_example(2)">位置查询</button>
+                        <button type="button" class="btn btn-info" onclick="query_example(3)">正则表达式查询</button>
+                        <button type="button" class="btn btn-danger" onclick="query_example(4)">自定义</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="filterstr">搜索函数</label>
+                        <textarea class="form-control" id="filterstr" rows="8"></textarea>
+                    </div>
+                    <button type="button" class="btn btn-success" onclick="query_local()">搜索</button>
                 </form>
             </div>
         </div>
@@ -165,8 +212,13 @@
         $("#btn_add").addClass("btn-success");
         $("#btn_add").html("添加元件");
         $("#btn_ret").html("切换显示");
-        status = "none";
-        detail_hide();
+        if (status == "adding") {
+            status = "none";
+            clear_filter(); // show_queried_data(queried_data);
+        } else {
+            detail_hide();  // 用于
+            status = "none";
+        } 
     }
     function toggle_show() {
         if (show_status) {
@@ -193,17 +245,17 @@
             $("#tag").append("<option>" + sys_tags[i].name + "</option>");
         }
         refresh_all();
-        toggle_show();
+        // toggle_show();
     })
 
-    function show_queried_data() {
+    function show_queried_data(data) {
         console.log(active_ele);
-        console.log(queried_data);
+        console.log(data);
         $("#elelist").children().remove();
         ele_map = {};
         ordered_data = [];
-        for (let i=0; i<queried_data.length; ++i) {
-            ordered_data.push(queried_data[i]);
+        for (let i=0; i<data.length; ++i) {
+            ordered_data.push(data[i]);
         }
         let active_id = null;
         let active_name = "";
@@ -237,9 +289,9 @@
     }
 
     function refresh_all() {
-        $.get("query_all", function(data) {
+        $.get("query_all?t=" + (new Date().getTime()), function(data) {
             queried_data = data.data;
-            show_queried_data();
+            clear_filter(); // show_queried_data(queried_data);
         })
     }
 
@@ -335,7 +387,7 @@
                         queried_data.push(ele);
                         midbar_return();
                         status = "modifying";
-                        show_queried_data();
+                        clear_filter(); // show_queried_data(queried_data);
                     } else alert("添加失败：" + msg);
                     global_lock(false);
                 }
@@ -355,6 +407,8 @@
             $("#tag").find("option:contains('点击添加')").attr("selected",true);
             $("#tags").children("div").remove();
             $("#description").val("");
+            $("#elementsetting").show();
+            $("#querypanel").hide();
             detail_show();
             status = "adding";
         }
@@ -391,7 +445,9 @@
             $("#btn_add").addClass("btn-success");
             $("#btn_add").html("添加元件");
             $("#btn_ret").html("切换显示");
-            detail_show();
+            $("#elementsetting").show();
+            $("#querypanel").hide();
+            // detail_show();
             active_ele = ele;
             status = "modifying";
         }
@@ -429,6 +485,18 @@
             if (quantity < 0) quantity = 0;
             $("#quantity").val(quantity);
             general_modify();
+        }
+    }
+
+    function query_element() {
+        if (status == "adding") {
+            alert("请先退出添加模式");
+        } else {
+            $("#elementsetting").hide();
+            $("#querypanel").show();
+            $("#title").html("元件查询");
+            $("#filterstr").val(filterstr);
+            detail_show();
         }
     }
 
@@ -478,12 +546,90 @@
                         for (let key in ele) {
                             active_ele[key] = ele[key];
                         }
-                        show_queried_data();
+                        clear_filter(); // show_queried_data(queried_data);
                     } else alert("添加失败");
                     global_lock(false);
                 }
             })
         }
+    }
+
+    var filter = null;
+    var filterstr = "";
+    function filter_set(func) {
+        try {
+            filterstr = func;
+            eval(func);
+            a = filter(queried_data);
+            query_element();
+            show_queried_data(a);
+            detail_show();
+            $("#btnclear").show(500);
+            console.log(a);
+        } catch(e){
+            console.log("error3");
+            console.log(e.toString());
+            alert("执行函数失败：" + e.toString());
+        }
+    }
+
+    function filter_tag(data, tag) {
+        a = [];
+        for (let i=0; i<data.length; ++i) {
+            let tags = data[i].tag;
+            for (let j=0; j<tags.length; ++j) {
+                if (tags[j] == tag) {
+                    a.push(data[i]);
+                    break;
+                }
+            }
+        }
+        return a;
+    }
+
+    function filter_position(data, position) {
+        a = [];
+        for (let i=0; i<data.length; ++i) {
+            if (data[i].position == position) a.push(data[i]);
+        }
+        return a;
+    }
+
+    function filter_keyword(data, keyword) {
+        a = [];
+        for (let i=0; i<data.length; ++i) {
+            if (data[i].position.indexOf(keyword) != -1) { a.push(data[i]); continue; }
+            if (data[i].name.indexOf(keyword) != -1) { a.push(data[i]); continue; }
+            if (data[i].description.indexOf(keyword) != -1) { a.push(data[i]); continue; }
+            for (let j=0; j<tags.length; ++j) {
+                if (tags[j].indexOf(keyword != -1)) { a.push(data[i]); break; }
+            }
+        }
+        return a; 
+    }
+
+    function clear_filter() {
+        show_queried_data(queried_data);
+        $("#btnclear").hide(500);
+    }
+
+    function query_local() {
+        filter_set($("#filterstr").val());
+    }
+
+    function query_example(idx) {
+        let functions = [
+            "filter = function(e) {\n\treturn filter_tag(e, '常用元件')\n}",
+            "filter = function(e) {\n\treturn filter_keyword(e, 'SoftPHY')\n}",
+            "filter = function(e) {\n\treturn filter_position(e, '红色手推车')\n}",
+            "filter = function(e) {\n\treturn filter_reg(e, /^SoftPHY[0-9]+$/)\n}",
+            "filter = function(e) {\n\ta = [];\n\tfor (let i=0; i<e.length; ++i) {\n\t\tif (e[i].name == 'SoftPHY181215') a.push(e[i]);\n\t}\n\treturn a;\n}",
+        ]
+        func = functions[idx];
+        $("#filterstr").val(func);
+        // query_local();
+
+        console.log(func);
     }
 
     </script>

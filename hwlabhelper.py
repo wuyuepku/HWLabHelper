@@ -111,7 +111,7 @@ def init(app, mongo, prefix):
 
 if __name__ == "__main__":
     app = Flask(__name__, static_folder='')
-    app.config['SECRET_KEY'] = '1234567'  # use os.urandom(24) to generate one when deploy
+    app.config['SECRET_KEY'] = '12345678'  # use os.urandom(24) to generate one when deploy
     app.config['MONGO_URI'] = 'mongodb://localhost:27017/flask'
     mongo = PyMongo(app)
     init(app, mongo, "/hwlab")
