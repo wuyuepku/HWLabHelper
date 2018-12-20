@@ -1,9 +1,10 @@
 from flask import Flask, send_file, send_from_directory, make_response, request, abort, session, redirect, jsonify
-import re, threading, datetime, time, os, random, string
+import re, threading, datetime, time, os, random, string, base64
 from flask_pymongo import PyMongo
 # 此程序只能在64位机器上运行，否则可能溢出
 
 password = "password"  # when deploy, change this !!!
+imagepath = "/home/hwlab/"
 
 def init(app, mongo, prefix):
     # 静态文件
@@ -108,8 +109,28 @@ def init(app, mongo, prefix):
         print(ele)
         hwlab.update({"name": ele["name"]},{"$set": ele})
         return "OK"
+    @app.route(prefix + "/uploadpic", methods=['POST'])
+    def hwlab_uploadpic():
+        if "base64" not in request.form or "type" not in request.form:
+            return "error"
+        base = request.form["base64"]
+        print("base:", base[:40], "...", base[-20:])
+        sp = base.split(',')
+        data = base64.b64decode(sp[1])
+        filename = ''.join(random.sample(string.ascii_letters + string.digits, 8)) + "." + sp[0].split("/")[1].split(";")[0]
+        print(filename)
+        if os.path.exists(imagepath + filename): return "error"
+        with open(imagepath + filename, "wb") as f:
+            f.write(data)
+        return filename
+    @app.route(prefix + "/getpic/<filename>", methods=['GET'])
+    def hwlab_getpic(filename):
+        global imagepath
+        return send_from_directory(imagepath, filename)
 
 if __name__ == "__main__":
+    imagepath = os.path.dirname(__file__) + "/image_test/"
+    print(imagepath)
     app = Flask(__name__, static_folder='')
     app.config['SECRET_KEY'] = '12345678'  # use os.urandom(24) to generate one when deploy
     app.config['MONGO_URI'] = 'mongodb://localhost:27017/flask'

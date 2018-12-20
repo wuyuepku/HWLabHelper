@@ -48,6 +48,9 @@
         line-height: 1;
         text-align: center;
     }
+    #image:hover {
+        opacity: 0.5;
+    }
     </style>
 </head>
 <body>
@@ -119,7 +122,9 @@
                         <input type="text" class="form-control col-sm-4 cqua" id="diy_tag" placeholder="自定义标签" style="margin-left: 5px;" onblur="add_diy_tag()"/>
                     </div>
                     <div class="form-group">
-                        <img src="img/default.jpg" style="width: 100%; border: 1px solid black; margin-top: 10px;" id="image" class="cqua"/>
+                        <img src="img/default.jpg" style="width: 100%; border: 1px solid black; margin-top: 10px;" id="image" class="cqua" onclick="upload_pic()"/>
+                        <input type="file" accept="image/*" capture="camera" id="uploadpic" style="display: none;">
+                        <canvas id="canvans" style="display: none;"></canvas>
                     </div>
                     <div class="form-group">
                         <label for="description">详细描述信息（备注）</label>
@@ -179,6 +184,7 @@
     var sys_tags = [];
     var sys_tags_init = [
         {"name": "常用元件", "class": "alert-success"},
+        {"name": "工具", "class": "alert-info"},
         {"name": "需要增添", "class": "alert-warning"},
         {"name": "弃用", "class": "alert-danger"},
         {"name": "存档硬件", "class": "alert-dark"}
@@ -191,6 +197,8 @@
     var queried_data = [];
     var ordered_data = [];
     var ele_map = {};
+    var uploaded_pic = "img/default.jpg";
+    var max_file_size = 300000;  // 300KB is enough
     function allocID() {
         idcnt += 1;
         return "gid_" + idcnt;
@@ -433,6 +441,8 @@
             $("#position").find("option:contains('未知地点')").attr("selected",true);
             $("#tag").find("option").removeAttr("selected");
             $("#tag").find("option:contains('点击添加')").attr("selected",true);
+            uploaded_pic = "img/default.jpg";
+            $("#image").attr("src", uploaded_pic);
             $("#tags").children("div").remove();
             $("#description").val("");
             $("#elementsetting").show();
@@ -470,6 +480,7 @@
             }
             $("#description").val(ele.description);
             $("#btn_add").removeClass("btn-danger");
+            $("#image").attr("src", ele.image);
             $("#btn_add").addClass("btn-success");
             $("#btn_add").html("添加元件");
             $("#btn_ret").html("切换显示");
@@ -660,6 +671,94 @@
         // query_local();
 
         console.log(func);
+    }
+
+    function upload_pic() {
+        $("#uploadpic").click();
+    }
+
+    $(function () {
+        $("#uploadpic").on("change", function() {
+            if(!this.files.length){ return; }
+            let file = this.files[0];
+            if(!/jpeg|jpg|png/.test(file.type)) { alert("仅支持上传jpg、jpeg、png格式的图片"); return; }
+            let fileReader = new FileReader();
+            console.log(file.size);
+            // alert(file.size);
+            fileReader.onload = function () {
+                let result = this.result;
+                let image = new Image();
+                image.src = result;
+                function callback() {
+                    let data = compress(image);
+                    upload(data, file.type);
+                }
+                if (result.length > max_file_size){
+                    if (image.complete) {
+                        callback();
+                    } else {
+                        image.onload = callback;
+                        compress(image);
+                    }
+                } else {
+                    image = null;
+                    upload(result, file.type);
+                }
+            }
+            fileReader.readAsDataURL(file);
+        });
+    })
+
+    function compress(image) {
+        let initImgSize = image.src.length;
+        let width = image.width;
+        let height = image.height;
+        console.info(initImgSize + "/" + width + "/" + height);
+        var ration;//压缩比
+        if (width * height > max_file_size*10){
+            ration = Math.sqrt(width * height / max_file_size/10);
+            width /= ration;
+            height /= ration;
+        } else {
+            ration = 1;
+        }
+        let canvas = document.getElementById("canvans");
+        canvas.width = width;
+        canvas.height = height;
+        //图片过大需要进行瓦片绘制，暂不做处理
+        let ctx = canvas.getContext("2d");
+        ctx.drawImage(image,0,0,canvas.width,canvas.height);
+        //进行压缩
+        var newdata = canvas.toDataURL("image/jpeg",0.3);
+        console.info("before: " + initImgSize);
+        console.info("after: " + newdata.length);
+        console.info("rate: " + (100 * (initImgSize - newdata.length) / initImgSize) + "%");
+        return newdata;
+    }
+
+    function upload(data, type) {
+        // console.log(data);
+        console.log(type);
+        global_lock(true);
+        $.ajax({
+            type: 'POST',
+            url: "uploadpic",
+            data: { "base64": data, "type": type },
+            success: function(msg) {
+                console.log(msg);
+                if (msg == "error") {
+                    alert("图片上传失败：" + msg);
+                } else {
+                    let filename = msg;
+                    uploaded_pic = "getpic/" + filename;
+                    $("#image").attr("src", uploaded_pic);
+                    if (status == "modifying") {
+                        general_modify();
+                    }
+                }
+                global_lock(false);
+            }
+        });
     }
 
     </script>
