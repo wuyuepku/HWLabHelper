@@ -111,6 +111,7 @@ def init(app, mongo, prefix):
         return "OK"
     @app.route(prefix + "/uploadpic", methods=['POST'])
     def hwlab_uploadpic():
+        if "logined" not in session: return redirect(prefix + "/login.html")
         if "base64" not in request.form or "type" not in request.form:
             return "error"
         base = request.form["base64"]
@@ -125,6 +126,7 @@ def init(app, mongo, prefix):
         return filename
     @app.route(prefix + "/getpic/<filename>", methods=['GET'])
     def hwlab_getpic(filename):
+        if "logined" not in session: return redirect(prefix + "/login.html")
         global imagepath
         return send_from_directory(imagepath, filename)
 
