@@ -104,11 +104,11 @@
                     </div>
                     <div class="form-inline" style="margin-top: 10px;">
                         <label for="quantity" class="col-sm-4 col-form-label">数量</label>
-                        <button type="button" class="btn btn-warning col-sm-1 cqua" onclick="change_qua(-10)">-10</button>
-                        <button type="button" class="btn btn-success col-sm-1 cqua" onclick="change_qua(-1)">-1</button>
+                        <button type="button" class="btn btn-warning col-sm-1 cqua" onclick="change_qua(-10)" style="padding: 6px;">-10</button>
+                        <button type="button" class="btn btn-success col-sm-1 cqua" onclick="change_qua(-1)" style="padding: 6px;">-1</button>
                         <input type="number" class="form-control col-sm-4 cqua" id="quantity" placeholder="quantity" onblur="general_modify()">
-                        <button type="button" class="btn btn-success col-sm-1 cqua" onclick="change_qua(1)">+1</button>
-                        <button type="button" class="btn btn-warning col-sm-1 cqua" onclick="change_qua(+10)">+10</button>
+                        <button type="button" class="btn btn-success col-sm-1 cqua" onclick="change_qua(1)" style="padding: 6px;">+1</button>
+                        <button type="button" class="btn btn-warning col-sm-1 cqua" onclick="change_qua(+10)" style="padding: 6px;">+10</button>
                     </div>
                     <div class="form-inline" style="margin-top: 10px;">
                         <label for="position" class="col-sm-4 col-form-label">放置地点</label>
@@ -752,6 +752,7 @@
                     let filename = msg;
                     uploaded_pic = "getpic/" + filename;
                     $("#image").attr("src", uploaded_pic);
+                    $("#uploadpic").val("");
                     if (status == "modifying") {
                         general_modify();
                     }
